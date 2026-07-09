@@ -16,6 +16,7 @@ final class ViewerWindowController: NSWindowController, NSWindowDelegate {
     private var observers: [NSObjectProtocol] = []
     private var keyMonitor: Any?
     private var autoFitEnabled = true
+    private var autoDisplayModeEnabled = true
     var onClose: ((ViewerWindowController) -> Void)?
 
     init(url: URL) {
@@ -142,7 +143,8 @@ final class ViewerWindowController: NSWindowController, NSWindowDelegate {
 
     // MARK: - Auto Fit
 
-    // 가로형(슬라이드)은 폭에, 세로형(A4 등)은 높이에 맞춘다
+    // 가로형(슬라이드)은 폭에, 세로형(A4 등)은 높이에 맞춘다.
+    // 창이 두 페이지를 나란히 놓을 만큼 넓으면 자동으로 twoUp 모드.
     private func applyAutoFitIfNeeded() {
         guard autoFitEnabled, let page = pdfView.currentPage else { return }
         let bounds = page.bounds(for: pdfView.displayBox)
@@ -154,10 +156,27 @@ final class ViewerWindowController: NSWindowController, NSWindowDelegate {
         guard pageSize.width > 0, pageSize.height > 0,
               viewSize.width > 0, viewSize.height > 0 else { return }
 
-        let isLandscape = pageSize.width > pageSize.height
-        let scale = isLandscape
-            ? viewSize.width / pageSize.width
-            : viewSize.height / pageSize.height
+        if autoDisplayModeEnabled {
+            // 높이 기준 스케일로 두 페이지가 가로로 들어가면 twoUp
+            let heightScale = viewSize.height / pageSize.height
+            let twoUpWidth = pageSize.width * 2 * heightScale
+            let desired: PDFDisplayMode = viewSize.width >= twoUpWidth * 1.02 ? .twoUp : .singlePage
+            if pdfView.displayMode != desired {
+                pdfView.displayMode = desired
+            }
+        }
+
+        let isTwoUp = pdfView.displayMode == .twoUp || pdfView.displayMode == .twoUpContinuous
+        let scale: CGFloat
+        if isTwoUp {
+            // 두 페이지 스프레드 전체가 보이도록 높이·폭 중 작은 쪽에 맞춘다
+            scale = min(viewSize.height / pageSize.height,
+                        viewSize.width / (pageSize.width * 2))
+        } else if pageSize.width > pageSize.height {
+            scale = viewSize.width / pageSize.width
+        } else {
+            scale = viewSize.height / pageSize.height
+        }
         pdfView.minScaleFactor = min(0.1, scale)
         if abs(pdfView.scaleFactor - scale) > 0.001 {
             pdfView.scaleFactor = scale
@@ -234,6 +253,7 @@ final class ViewerWindowController: NSWindowController, NSWindowDelegate {
 
     @objc func autoFit(_ sender: Any?) {
         autoFitEnabled = true
+        autoDisplayModeEnabled = true
         pdfView.autoScales = false
         applyAutoFitIfNeeded()
     }
@@ -280,6 +300,8 @@ final class ViewerWindowController: NSWindowController, NSWindowDelegate {
 
     @objc func changeDisplayMode(_ sender: NSMenuItem) {
         guard let mode = PDFDisplayMode(rawValue: sender.tag) else { return }
+        // 수동 선택은 자동 모드 전환을 끈다 (⌘9 자동 맞추기로 재활성화)
+        autoDisplayModeEnabled = false
         pdfView.displayMode = mode
         applyAutoFitIfNeeded()
     }
