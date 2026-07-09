@@ -1,0 +1,6 @@
+.build/
+.swiftpm/
+vpdf.app/
+.DS_Store
+*.xcodeproj
+.omc/
