@@ -4,3 +4,4 @@ vpdf.app/
 .DS_Store
 *.xcodeproj
 .omc/
+*.dmg
