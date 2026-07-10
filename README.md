@@ -2,6 +2,24 @@
 
 빠른 macOS 네이티브 PDF 뷰어. AppKit + PDFKit 기반 (SwiftUI 미사용).
 
+## 설치
+
+### Homebrew
+
+```bash
+brew install --cask seongilp/tap/vpdf
+```
+
+업데이트:
+
+```bash
+brew upgrade --cask vpdf
+```
+
+### 직접 다운로드
+
+[Releases](https://github.com/seongilp/vpdf/releases)에서 최신 DMG를 받아 `vpdf.app`을 응용 프로그램 폴더로 옮기면 됩니다.
+
 ## 빌드
 
 ```bash
